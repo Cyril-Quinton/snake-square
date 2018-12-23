@@ -32,25 +32,22 @@ function move(snake) {
   return snake;
 }
 
-function createSnake(y) {
+function createSnake(y, color) {
   var body = [{x: 50, y: y}, {x: 100, y: y}, {x: 150, y: y}, {x: 200, y: y}];
   var length = body.length;
   var direction = "RIGHT";
-  return {body: body, length: length, direction: direction}
+  return {body: body, length: length, direction: direction, color: color}
 }
 
-function draw(context, snake, snake2, food) {
+function draw(game) {
+  var context = game.canvasContext;
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-  context.fillStyle = 'rgb(200, 0, 0)';
-  snake.body.forEach(pos => context.fillRect(pos.x, pos.y, SNAKEWIDTH, SNAKEWIDTH));
-  context.fillStyle = 'rgb(0, 0, 250)';
-  snake2.body.forEach(pos => context.fillRect(pos.x, pos.y, SNAKEWIDTH, SNAKEWIDTH));
-  if (food.value > 1) {
-    context.fillStyle = 'green';
-  } else {
-    context.fillStyle = 'orange';
-  }
-  context.fillRect(food.x, food.y, SNAKEWIDTH, SNAKEWIDTH);
+  game.snakes.forEach(snake => {
+    context.fillStyle = snake.color;
+    snake.body.forEach(pos => context.fillRect(pos.x, pos.y, SNAKEWIDTH, SNAKEWIDTH));
+  });
+  context.fillStyle = game.food.color;
+  context.fillRect(game.food.x, game.food.y, SNAKEWIDTH, SNAKEWIDTH);
 }
 
 function getRandom(max) {
@@ -62,41 +59,35 @@ function intersects(snake, food) {
   return head.x === food.x && head.y === food.y;
 }
 
-function createFood(snake) {
-  return {value:1, x: getRandom(WIDTH / SNAKEWIDTH) * SNAKEWIDTH, y: getRandom(HEIGHT / SNAKEWIDTH) * SNAKEWIDTH};
-}
-
-function moveFood(food, snake) {
-  var newPos = createFood(snake);
-  food.x = newPos.x;
-  food.y = newPos.y;
-  if (getRandom(5) == 4) {
-    food.value = 5;
-  } else {
-    food.value = 1;
-  }
-  return food;
+function createFood() {
+  var yummy = getRandom(5) == 4;
+  return {
+    value: yummy ? 5 : 1,
+    color: yummy ? "green" : "orange",
+    x: getRandom(WIDTH / SNAKEWIDTH) * SNAKEWIDTH,
+    y: getRandom(HEIGHT / SNAKEWIDTH) * SNAKEWIDTH,
+  };
 }
 
 function eatFood(snake, food) {
   if (intersects(snake, food)) {
     snake.length = snake.length + food.value;
-    moveFood(food, snake);
+    Object.assign(food, createFood());
   }
 }
 
-function eatEachOther(snake, snake2) {
+function eatEachOther(snakes) {
   restart = false;
-  if (hit(snake, snake2)) {
+  if (hit(snakes[0], snakes[1])) {
     SCORE2++;
     restart = true;
   }
-  if (hit(snake2, snake)) {
+  if (hit(snakes[1], snakes[0])) {
     SCORE1++;
     restart = true;
   }
   if (restart) {
-    toInitialPos(snake, snake2);
+    toInitialPos(snakes[0], snakes[1]);
   }
 }
 
@@ -111,23 +102,19 @@ function hit(snake, snake2) {
 }
 
 function toInitialPos(snake1, snake2) {
-  Object.assign(snake1, createSnake(SNAKE1INITIALY));
-  Object.assign(snake2, createSnake(SNAKE2INITIALY));
+  Object.assign(snake1, createSnake(SNAKE1INITIALY, "red"));
+  Object.assign(snake2, createSnake(SNAKE2INITIALY, "blue"));
   DIRECTION = "RIGHT";
   DIRECTION2 = "RIGHT";
 }
 
-function main(snake, snake2, food, context, labelScore1, labelScore2) {
-  eatFood(snake, food);
-  eatFood(snake2, food);
-  snake.direction = DIRECTION;
-  snake2.direction = DIRECTION2;
-  eatEachOther(snake, snake2);
-  labelScore1.innerHTML = SCORE1;
-  labelScore2.innerHTML = SCORE2;
-  snake = move(snake);
-  snake2 = move(snake2);
-  draw(context, snake, snake2, food);
+function main(game) {
+  game.snakes.forEach(snake => eatFood(snake, game.food));
+  game.snakes[0].direction = DIRECTION;
+  game.snakes[1].direction = DIRECTION2;
+  eatEachOther(game.snakes);
+  game.snakes.forEach(snake => move(snake));
+  draw(game);
 }
 
 function start(context) {
@@ -182,7 +169,9 @@ canvas.addEventListener("keydown", handleKeyDown);
 var labelScore1 = document.getElementById("score1");
 var labelScore2 = document.getElementById("score2");
 var ctx = canvas.getContext("2d");
-var snake = createSnake(SNAKE1INITIALY);
-var snake2 = createSnake(SNAKE2INITIALY);
-var food = createFood();
-setInterval(_ => main(snake, snake2, food, ctx, labelScore1, labelScore2), 100);
+var GAME = {};
+GAME.snakes = [createSnake(SNAKE1INITIALY, "red"), createSnake(SNAKE2INITIALY, "blue")];
+GAME.scores = [0, 0];
+GAME.food = createFood();
+GAME.canvasContext = ctx;
+var interval = setInterval(_ => main(GAME), 100);

@@ -122,15 +122,15 @@ function toInitialPos(snake1, snake2) {
   DIRECTION2 = "RIGHT";
 }
 
-function main(game, direction1, direction2) {
+function main(game) {
   if (game.pause > 0) {
     if (game.pause < 4) {
       toInitialPos(game.snakes[0], game.snakes[1]);
     }
     game.pause -- ;
   } else {
-    game.snakes[0].direction = direction1;
-    game.snakes[1].direction = direction2;
+    game.snakes[0].direction = DIRECTION;
+    game.snakes[1].direction = DIRECTION2;
     game.snakes.forEach(snake => move(snake));
     game.snakes.forEach(snake => eatFood(snake, game.food));
     eatEachOther(game);
@@ -183,6 +183,8 @@ var canvas = document.getElementById("myCanvas");
 canvas.width = WIDTH + RIGHTSIDE;
 canvas.height = HEIGHT;
 canvas.addEventListener("keydown", handleKeyDown);
+var labelScore1 = document.getElementById("score1");
+var labelScore2 = document.getElementById("score2");
 var ctx = canvas.getContext("2d");
 var GAME = {};
 var snake1 = createSnake(SNAKE1INITIALY, "red");
@@ -192,4 +194,4 @@ snake2.score = 0;
 GAME.snakes = [snake1, snake2];
 GAME.food = createFood();
 GAME.canvasContext = ctx;
-var interval = setInterval(_ => main(GAME, DIRECTION, DIRECTION2), 100);
+var interval = setInterval(_ => main(GAME), 100);
